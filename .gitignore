@@ -1,0 +1,4 @@
+config_ide/
+
+# ignore all logs
+*.log
