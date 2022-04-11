@@ -7,7 +7,7 @@ Program that use a txt file from export wpp to create a report html
  Our input must be a txt file from whatsapp export, then our output will be our result in a html report format  
 
  ## Automation
- This program is referenced by a file .bat named Build-reports that automates your process in a directory containing multiple conversations exported from whatsapp.
+ This program is referenced by a file .bat named Build-reports that automates your process in a directory containing multiple conversations exported from whatsapp.  
  For edit Build-reports you can use Notepad++. The configuration is linked to especific *python* in your machine but if you want change these reference you can change in method **:exe** changing *python* for a relative path to different version of python in your machine.
    
 ``` batch
