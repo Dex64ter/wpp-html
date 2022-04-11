@@ -1,5 +1,6 @@
 # wpp-html
- 
+Program that use a txt file from export wpp to create a report html
+
  ---
  ## How to start the operation
     Use two entries **-i** and **-o** will be our input and output
