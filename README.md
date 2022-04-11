@@ -12,7 +12,7 @@ Program that use a txt file from export wpp to create a report html
    
 ``` batch
 :exe
-for %%e in (*.txt) do echo. & echo ###################### %%e ########################## & python "%back%\%dirP%\whatsapp_convert.py" -i "%%e" -o "%cd%\%%e.html" & cd "%Input%"
+    for %%e in (*.txt) do echo. & echo ###################### %%e ########################## & python "%back%\%dirP%\whatsapp_convert.py" -i "%%e" -o "%cd%\%%e.html" & cd "%Input%"
 
      EXIT /b 0
 ```
