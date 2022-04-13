@@ -44,6 +44,11 @@ def ParseLine(line):
     # Maybe it's the first line which doesn't contain a person's name.
     m = re.match(FIRSTLINE_RE, line)
     if m:
+        a = re.match(DATETIME_RE, line)
+        if (a.end()-a.start()) != 16:
+            return None
+            
+    if m:
         d = dateutil.parser.parse("%s %s" % (m.group('date'),
             m.group('time')), dayfirst=True)
         return d, "Whatsapp", m.group('body')
@@ -91,9 +96,12 @@ def TemplateData(messages, input_filename):
         by_user.append((user, list(msgs_of_user)))
     
     l = []
+    n = []
     for i in by_user:
-        if i[0] not in l:
+        if i[0] not in n:
             l.append((i[0], (random.randint(100, 200), random.randint(100, 200), random.randint(100, 200))))
+            n.append(i[0])
+    
     """
         by_user =
             [grupo de mensagens por usuário que enviou, vai de 0 até a quantidade de agrupamentos de mensagens por pessoa]
@@ -109,12 +117,15 @@ def FormatHTML(data):
     tmpl = """<!DOCTYPE html>
     <html>
     <head>
-        <title>WhatsApp archive {{ input_basename }}</title>
+        <title>WhatsApp {{ input_basename }}</title>
         <meta charset="utf-8"/>
-        <link rel="icon" type="image/png" href="../whatsapp-archive-master/whatsapp.png" />
+        <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/1384/1384095.png" />
         <!-- <a href="https://www.flaticon.com/free-icons/missed-call" title="missed call icons">Missed call icons created by Plastic Donut - Flaticon</a> -->
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
+            * {
+                box-sizing:border-box; 
+            }
             body {
                 font-family: sans-serif;
                 font-size: 12px;
@@ -129,26 +140,58 @@ def FormatHTML(data):
                 margin: 0;
                 padding: 0;
             }
+            ol.users li.conjunto {
+                margin-bottom: 10px;
+            }
             ol.messages {
                 list-style-type: none;
                 list-style-position: inside;
                 margin: 0;
                 padding: 0;
             }
-            ol.messages li {
+            ol.messages li.le{
                 color: #D6D6B1;
+                margin-right: 1em;
                 margin-left: 1em;
                 font-size: 16px;
                 display: flex;
                 flex-direction: row;
                 align-items: center;
             }
+            ol.messages li.ri{
+                color: #D6D6B1;
+                margin-left: 1em;
+                margin-right: 1em;
+                font-size: 16px;
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: end;
+            }
+            ol.messages li.Whatsapp{
+                color: #D6D6B1;
+                margin-left: 1em;
+                margin-right: 1em;
+                font-size: 16px;
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: center;
+            }
             div {
+                display: flex;
+                flex-direction: row;
+                justify-content: flex-start;
+
                 background-color: #30292F;
                 margin: 2px;
                 padding: 12px;
                 border-radius: 12px;
             }
+            div.Whatsapp-c {
+                background-color: #181723;
+            }
+
             img {
                 max-width: 200px;
                 max-height: 300px;
@@ -184,8 +227,7 @@ def FormatHTML(data):
                 color: #ccbfb9;
             }
         {% for u in users %}
-            span.{{ u[0].replace(' ', '-') }} {
-
+            span.{{ u[0].replace(' ', '-').replace("+", 'b').replace('.','') }} {
                 margin: 0 2px;
                 font-weight: bold;
                 color: rgb{{ u[1] }};
@@ -200,48 +242,181 @@ def FormatHTML(data):
         <h1>{{ input_basename }}</h1>
         <ol class="users">
         {% for user, messages in by_user %}
-            <li>
+            <li class="conjunto">
             <ol class="messages">
-            {% for message in messages %}
-                <li>
-                    <div>
+        {% for message in messages %}
+            {% if user == "Whatsapp" %}
+                <li class="Whatsapp">
+                    <div class="Whatsapp-c">
                         <span class="date">{{ message[0] }} -</span>
-                        <span class={{ user.replace(' ', '-') }} >{{ user }}: </span>
+                        <span class="{{ user.replace(' ', '-') }}" >{{ user }}: </span>
+                        {{message[2] | e}}
+                    </div>
+                </li>
+            {% elif users|length <= 3 %}
+                {% if user in input_basename %}
+                <li class="le">
+                    <div class="{{ user.replace(' ', '_') }}">
+                        <span class="date">{{ message[0] }} -</span>
+                        <span class="{{ user.replace("+", 'b').replace(' ', '-').replace('.','') }}" >{{ user }}: </span>
                         {% if message[2] == "Chamada de voz perdida" or message[2] == "Chamada de vídeo perdida" %}
-                            <img id="missed-call" src='../whatsapp-archive-master/missed-call.png'>
+                            <img id="missed-call" src='https://cdn-icons.flaticon.com/png/512/5604/premium/5604556.png?token=exp=1649681187~hmac=85540c3c1ac7984f32c86a041484e55f'>
                         {% endif %}
                         {% if "localização:" in message[2] %}
                             localização: <a href={{message[2][message[2].index('localização:')+13:] | e }} target='_blank'>{{message[2][message[2].index('localização:')+13:] | e }}</a>
-                        {% elif message[2].endswith('.opus (arquivo anexado)') %}
+                        
+                        {% elif message[2].endswith('.opus (arquivo anexado)') or message[2].endswith('.mp3 (arquivo anexado)') or message[2].endswith('.mp3') %}
                             <audio controls>
-                                <source src="./{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="audio/ogg">
+                                <source src="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="audio/mp3">
+                                <source src="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="audio/ogg">
                                 Seu navegador não possui suporte para áudio.
                             </audio>
 
                         {% elif message[2].endswith('.mp4 (arquivo anexado)') %}
                             <video controls>
-                                <source src="./{{ message[2][message[2].index('VID'):message[2].index(' (arquivo')] | e }}" type="video/mp4">
-                                <source src="./{{ message[2][message[2].index('VID'):message[2].index(' (arquivo')] | e }}" type="video/ogg">
+                                <source src="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="video/mp4">
+                                <source src="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="video/ogg">
+                                Seu navegador não possui suporte para Vídeos.
+                            </video>
+                        
+                        {% elif ('.webp (arquivo') in message[2] %}
+                            <picture>
+                                <source srcset="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="image/webp">
+                                <source srcset="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="image/jpeg">
+                                <img src="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}">
+                            </picture>
+
+                        {% elif message[2].endswith('.jpg (arquivo anexado)') %}
+                            <input type="checkbox" id="zoomCheck-{{ message[2][1:message[2].index(' (arquivo')] | e }}">
+                            <label for='zoomCheck-{{ message[2][1:message[2].index(' (arquivo')] | e }}'>
+                                <img src='./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}'>                    
+                            </label>
+                        
+                        {% elif '(arquivo anexado)' in message[2] %}
+                            {% if message[2][message[2].index(')')+1:] %}
+                                <a href='./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}' target="_blank" download>{{ message[2][message[2].index(')')+2:] | e }}</a>
+                            {% else %}
+                                <a href='./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}' target="_blank" download>{{ message[2].replace(" (arquivo anexado)","") | e }}</a>
+                            {% endif %}
+                        {% else %}
+                            {% if '\n' in message[2] %}
+                                {% for i in message[2].split("\n") %}
+                                {{ i }}
+                                <br>
+                                {% endfor %}
+                            {% else %}
+                                {{ message[2] | e }}
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </li>
+                {% else %}
+                <li class="ri">
+                    <div class="{{ user.replace(' ', '_') }}">
+                        <span class="date">{{ message[0] }} -</span>
+                        <span class="{{ user.replace("+", 'b').replace(' ', '-').replace('.','') }}" >{{ user }}: </span>
+                        {% if message[2] == "Chamada de voz perdida" or message[2] == "Chamada de vídeo perdida" %}
+                            <img id="missed-call" src='https://cdn-icons.flaticon.com/png/512/5604/premium/5604556.png?token=exp=1649681187~hmac=85540c3c1ac7984f32c86a041484e55f'>
+                        {% endif %}
+                        {% if "localização:" in message[2] %}
+                            localização: <a href={{message[2][message[2].index('localização:')+13:] | e }} target='_blank'>{{message[2][message[2].index('localização:')+13:] | e }}</a>
+                        
+                        {% elif message[2].endswith('.opus (arquivo anexado)') or message[2].endswith('.mp3 (arquivo anexado)') or message[2].endswith('.mp3') %}
+                            <audio controls>
+                                <source src="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="audio/mp3">
+                                <source src="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="audio/ogg">
+                                Seu navegador não possui suporte para áudio.
+                            </audio>
+
+                        {% elif message[2].endswith('.mp4 (arquivo anexado)') %}
+                            <video controls>
+                                <source src="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="video/mp4">
+                                <source src="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="video/ogg">
+                                Seu navegador não possui suporte para Vídeos.
+                            </video>
+
+                        {% elif ('.webp (arquivo') in message[2] %}
+                            <picture>
+                                <source srcset="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="image/webp">
+                                <source srcset="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="image/jpeg">
+                                <img src="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}">
+                            </picture>
+
+                        {% elif message[2].endswith('.jpg (arquivo anexado)') %}
+                            <input type="checkbox" id="zoomCheck-{{ message[2][1:message[2].index(' (arquivo')] | e }}">
+                            <label for='zoomCheck-{{ message[2][1:message[2].index(' (arquivo')] | e }}'>
+                                <img src='./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}'>                    
+                            </label>
+
+                        {% elif '(arquivo anexado)' in message[2] %}
+                            {% if message[2][message[2].index(')')+1:] %}
+                                <a href='./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}' target="_blank" download>{{ message[2][message[2].index(')')+2:] | e }}</a>
+                            {% else %}
+                                <a href='./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}' target="_blank" download>{{ message[2].replace(" (arquivo anexado)","") | e }}</a>
+                            {% endif %}
+                        {% else %} 
+                            {% if '\n' in message[2] %}
+                                {% for i in message[2].split("\n") %}
+                                {{ i }}
+                                <br>
+                                {% endfor %}
+                            {% else %}
+                                {{ message[2] | e }}
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </li>
+
+                {% endif %}
+            {% else %}
+                <li class="le">
+                    <div class="{{ user.replace(' ', '_') }}">
+                        <span class="date">{{ message[0] }} -</span>
+                        <span class="{{ user.replace(' ', '-').replace("+", "b").replace('.','') }}" >{{ user }}: </span>
+                        {% if message[2] == "Chamada de voz perdida" or message[2] == "Chamada de vídeo perdida" %}
+                            <img id="missed-call" src='https://cdn-icons.flaticon.com/png/512/5604/premium/5604556.png?token=exp=1649681187~hmac=85540c3c1ac7984f32c86a041484e55f'>
+                        {% endif %}
+                        {% if "localização:" in message[2] %}
+                            localização: <a href={{message[2][message[2].index('localização:')+13:] | e }} target='_blank'>{{message[2][message[2].index('localização:')+13:] | e }}</a>
+                        {% elif message[2].endswith('.opus (arquivo anexado)') or message[2].endswith('.mp3 (arquivo anexado)') or message[2].endswith('.mp3') %}
+                            <audio controls>
+                                <source src="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="audio/ogg">
+                                <source src="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="audio/mp3">
+                                Seu navegador não possui suporte para áudio.
+                            </audio>
+
+                        {% elif message[2].endswith('.mp4 (arquivo anexado)') %}
+                            <video controls>
+                                <source src="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="video/mp4">
+                                <source src="./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}" type="video/ogg">
                                 Seu navegador não possui suporte para Vídeos.
                             </video>
 
                         {% elif message[2].endswith('.jpg (arquivo anexado)') %}
-                            <input type="checkbox" id="zoomCheck-{{ message[2][message[2].index('IMG'):message[2].index(' (arquivo')] | e }}">
-                            <label for='zoomCheck-{{ message[2][message[2].index('IMG'):message[2].index(' (arquivo')] | e }}'>
-                                <img src='./{{ message[2][message[2].index('IMG'):message[2].index(' (arquivo')] | e }}'>                    
+                            <input type="checkbox" id="zoomCheck-{{ message[2][1:message[2].index(' (arquivo')] | e }}">
+                            <label for='zoomCheck-{{ message[2][1:message[2].index(' (arquivo')] | e }}'>
+                                <img src='./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}'>                    
                             </label>
                         {% elif '(arquivo anexado)' in message[2] %}
                             {% if message[2][message[2].index(')')+1:] %}
-                                <a href='./{{ message[2][1:message[2].index(' (arquivo')] | e }}' target="_blank" download>{{ message[2][message[2].index(')')+2:] | e }}</a>
+                                <a href='./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}' target="_blank" download>{{ message[2][message[2].index(')')+2:] | e }}</a>
                             {% else %}
-                                <a href='./{{ message[2][1:message[2].index(' (arquivo')] | e }}' target="_blank" download>{{ message[2].replace(" (arquivo anexado)","") | e }}</a>
+                                <a href='./Midias/{{ message[2][1:message[2].index(' (arquivo')] | e }}' target="_blank" download>{{ message[2].replace(" (arquivo anexado)","") | e }}</a>
                             {% endif %}
-                        {% else %} 
-                            {{message[2] | e}}
+                        {% else %}
+                            {% if '\n' in message[2] %}
+                                {% for i in message[2].split("\n") %}
+                                {{ i }}
+                                <br>
+                                {% endfor %}
+                            {% else %}
+                                {{ message[2] | e }}
+                            {% endif %}
                         {% endif %}
                     </div>
                 </li>
-            {% endfor %}
+            {% endif %}
+        {% endfor %}
             </ol>
             <br>
             </li>
@@ -257,8 +432,6 @@ def main():
     parser = argparse.ArgumentParser(description='Produce a browsable history of a WhatsApp conversation')
     parser.add_argument('-i', dest='input_file', required=True)
     parser.add_argument('-o', dest='output_file', required=True)
-    print("Entrada=",parser.parse_args().input_file)
-    print("Saída=",parser.parse_args().output_file)
 
     args = parser.parse_args()
 
@@ -270,6 +443,9 @@ def main():
 
     with open(args.output_file, 'w', encoding='utf-8') as fd:
         fd.write(HTML)
+    
+    print("Entrada=",parser.parse_args().input_file)
+    print("Saída=",parser.parse_args().output_file)
 
 
 if __name__ == '__main__':
