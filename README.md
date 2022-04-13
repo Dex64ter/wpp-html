@@ -1,4 +1,4 @@
-# wpp-html
+# Wpp-HTML
 Program that use a txt file from export wpp to create a report html
 
  ---
